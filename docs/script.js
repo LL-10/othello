@@ -1,5 +1,5 @@
 new HTMLDocument(body => {
-	body.write(hi);
+	body.write('hi');
 }).load();
 
 function block() {
