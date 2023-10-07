@@ -1,0 +1,217 @@
+	start();
+	
+	function start() {
+		document.body.innerHTML = '<div id="board"></div><button id="restart">RESTART GAME</button>';
+		var restart = document.getElementById('restart');
+		restart.style.position = 'absolute';
+		restart.onclick = () => {
+			start()
+		};
+		const squares = defaults();
+		var turn = 0;/*black starts*/
+		var passCount = 0;
+		var active = 0;
+		var border = [[2, 2], [2, 3], [2, 4], [2, 5], [3, 2], [3, 5], [4, 2], [4, 5], [5, 2], [5, 3], [5, 4], [5, 5]];
+		let moves = 0;
+		(async () => {
+			while (moves < 60) {
+				var done = false;
+				var playable = false;
+				var possibleMoves = {};
+				for (let square of border) {
+					let x = square[0];
+					let y = square[1];
+					let reversible = [];
+					reversible.push(...check(x, -1, y, -1));
+					reversible.push(...check(x, -1, y, 0));
+					reversible.push(...check(x, -1, y, 1));
+					reversible.push(...check(x, 0, y, -1));
+					reversible.push(...check(x, 0, y, 1));
+					reversible.push(...check(x, 1, y, -1));
+					reversible.push(...check(x, 1, y, 0));
+					reversible.push(...check(x, 1, y, 1));
+					possibleMoves[square] = reversible;
+					if (active) {
+						playable = true;
+						squares[x][y].onclick = () => {
+							done = true;
+							for (let el of border) {
+								squares[el[0]][el[1]].onclick = null;
+							}
+							border.splice(border.findIndex(el => (el[0] == x && el[1] == y)), 1);
+							squares[x][y].set(turn);
+							for (let el of possibleMoves[[x, y]]) {
+								squares[el[0]][el[1]].set(turn);
+							}
+							for (let [i, j] = [-1, -1]; i < 2; (() => {
+								j++;
+								if (j === 2) {
+									j = -1;
+									i++;
+								}
+							})()) {
+								const [a, b] = [x + i, y + j];
+								if (-1 < a < 8 && -1 < b < 8) {
+									if (squares[a][b].value === -1) {
+										if (border.findIndex(square => (square[0] === a && square[1] === b)) === -1) {
+											border.push([a, b]);
+										}
+									}
+								}
+							}
+						}
+						active = 0;
+					}
+				}
+				if (playable) {
+					while (!done) {
+						await new Promise(scr => setTimeout(scr, 1));
+					}
+					next();
+				} else {
+					pass();
+					await new Promise(scr => setTimeout(scr, 200));
+					alert('No possible moves - PASS - ' + (turn == 0 ? 'black' : 'white') + '\'s turn');
+					if (passCount == 2) {
+						break;
+					}
+				}
+			}
+			await new Promise(scr => setTimeout(scr, 200));
+			end();
+		})();
+		
+		function end() {
+			var b = 0;
+			var w = 0;
+			for (let i = 0; i < 8; i++) {
+				for (let j = 0; j < 8; j++) {
+					if (squares[i][j].value == 0) {
+						b++;
+					} else if (squares[i][j].value == 1) {
+						w++;
+					}
+				}
+			}
+			if (b > w) {
+				alert('Black wins ' + b + '-' + w);
+			} else if (w > b) {
+				alert('White wins ' + w + '-' + b);
+			} else {
+				alert('Draw ' + b + '-' + w);
+			}
+		}
+		
+		function check(x, dx, y, dy) {
+			var s = [];
+			if (x + dx >= 0 && x + dx < 8 && y + dy >= 0 && y + dy < 8) {
+				if (squares[x + dx][y + dy].value == (turn + 1) % 2) {
+					let v;
+					let b = false;
+					let xx = x + dx;
+					let yy = y + dy;
+					while (!v) {
+						if (xx >= 0 && xx < 8 && yy >= 0 && yy < 8) {
+							if (squares[xx][yy].value == (turn + 1) % 2) {
+								s.push([xx, yy]);
+								xx += dx;
+								yy += dy;
+								b = true;
+							} else if (squares[xx][yy].value == turn) {
+								if (b) {
+									active = 1;
+								}
+								v = true;
+							} else if (squares[xx][yy].value == -1) {
+								v = true;
+								s = [];
+							}
+						} else {
+							v = true;
+							s = [];
+						}
+					}
+				}
+			}
+			return s;
+		}
+		
+		function next() {
+			turn++;
+			turn %= 2;
+			moves++;
+			passCount = 0;
+		}
+		
+		function pass() {
+			turn++;
+			turn %= 2;
+			passCount++;
+		}
+		
+		function defaults() {
+			document.body.oncontextmenu = () => false;
+			document.body.onselectstart = () => false;
+			document.body.ondragstart = () => false;
+			document.body.style.margin = 0;
+			document.body.style.background = '#000';
+			var board = document.getElementById('board');
+			for (var n = 0; n < 64; n++) {
+				var square = document.createElement('div');
+				square.classList.add('square');
+				square.id = 's' + n;
+				square.style.background = '#182f';
+				square.style.display = 'inline-block';
+				square.style.border = '1px solid #efe';
+				square.style.textAlign = 'center';
+				square.style.position = 'absolute';
+				square.style.cursor = 'default';
+				board.appendChild(square);
+			}
+			setDimensions();
+			window.onresize = setDimensions;
+			const fonts = {
+				0: '&#9899',
+				1: '&#9898'
+			}
+			const sqs = document.getElementsByClassName('square');
+			for (var n = 0; n < 64; n++) {
+				sqs[n].value = -1;
+				sqs[n].set = function (value) {
+					this.value = value;
+					this.innerHTML = fonts[value];
+				}
+			}
+			var squares = [];
+			let k = 0;
+			while (k <= 64) {
+				squares.push([...sqs].slice(k, k + 8));
+				k += 8;
+			}
+			squares[3][3].set(0);
+			squares[4][4].set(0);
+			squares[3][4].set(1);
+			squares[4][3].set(1);
+			return squares;
+		}
+		
+		function setDimensions() {
+			var w = window.innerWidth || 360;
+			var h = window.innerHeight || 500;
+			var rh = restart.getBoundingClientRect().height;
+			var tsw = (w > h) ? h - rh * 1.48 : w;
+			var sw = (tsw - 16) / 8;
+			document.body.style.width = w + 'px';
+			document.body.style.height = h + 'px';
+			restart.style.top = 7 + (h - tsw) * 0.5 - rh * 1.12 + 'px';
+			restart.style.left = 7 + (w - tsw) * 0.5 + 'px';
+			for (var n = 0; n < 64; n++) {
+				var square = document.getElementById('s' + n);
+				square.style.height = sw + 'px';
+				square.style.width = sw + 'px';
+				square.style.top = 7 + (h - tsw) * 0.5 + sw * (Math.floor(n / 8)) + 'px';
+				square.style.left = 7 + (w - tsw) * 0.5 + sw * (Math.floor(n % 8)) + 'px';
+				square.style.fontSize = sw * 3 / 4 + 'px';
+			}
+		}
+	}
