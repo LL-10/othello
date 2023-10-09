@@ -3,6 +3,26 @@ new HTMLDocument(body => {
 	prepare();
 	start();
 	function prepare() {
+		new Style({
+			width: '100vw',
+			height: '100vh',
+			display: 'flex',
+			alignItems: 'stretch',
+			justifyContent: 'stretch',
+			overflow: 'hidden',
+			background: 'black',
+			fontFamily: 'sans-serif',
+		}).apply(document.documentElement);
+		new Style({
+			margin: '0',
+			padding: '4px',
+			flex: '1',
+			display: 'flex',
+			flexDirection: 'column',
+			alignItems: 'stretch',
+			overflow: 'hidden',
+			background: 'inherit',
+		}).apply(document.body);
 		const box = body.append('div', ['style*']);
 		new Style({
 			flex: 'auto',
@@ -17,7 +37,7 @@ new HTMLDocument(body => {
 			grid: 'repeat(8, 11%) / repeat(8, 11%)',
 			placeItems: 'stretch',
 			placeContent: 'space-evenly',
-			background: '#182f',
+			background: '#efe',
 		}).apply(board);
 		const squares = [];
 		for (let [i, j] = [0, 0]; i < 8; (() => {
@@ -38,9 +58,9 @@ new HTMLDocument(body => {
 			};
 			new Style({
 				gridArea: (i + 1) + '/' + (j + 1),
-				background: document.palette.light,
 				cursor: 'default',
 				textAlign: 'center',
+				background: '#182',
 			}).apply(squares[i][j]);
 		}
 		const fonts = {
@@ -48,6 +68,23 @@ new HTMLDocument(body => {
 			0: '\u26ab',
 			1: '\u26aa',
 		};
+		box.resize = function () {
+			const rect = box.HTMLObject.getBoundingClientRect();
+			const length = Math.min(rect.width, rect.height);
+			new Style({
+				width: length + 'px',
+				height: length + 'px',
+			}).apply(board);
+			squares.map((line, i) => {
+				line.map((square, j) => {
+					new Style({
+						fontSize: length * 11 / 125 - 4 + 'px',
+					}).apply(squares[i][j]);
+				});
+			});
+		};
+		box.resize();
+		window.on('resize', box.resize);
 	}
 	function start() {
 	
